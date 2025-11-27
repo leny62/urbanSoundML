@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # Prediction API Service
+  prediction-api:
+    build: .
+    container_name: urbansound-prediction
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/app/models
+      - ./data:/app/data
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: uvicorn src.prediction:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+    networks:
+      - urbansound-network
+  
+  # Retraining API Service
+  retrain-api:
+    build: .
+    container_name: urbansound-retrain
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./models:/app/models
+      - ./data:/app/data
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: uvicorn src.retrain:retrain_app --host 0.0.0.0 --port 8001 --reload
+    restart: unless-stopped
+    networks:
+      - urbansound-network
+  
+  # Streamlit UI Service
+  web-ui:
+    build: .
+    container_name: urbansound-ui
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./src:/app/src
+      - ./models:/app/models
+      - ./data:/app/data
+    environment:
+      - PREDICTION_API=http://prediction-api:8000
+      - RETRAIN_API=http://retrain-api:8001
+    command: streamlit run src/app.py --server.port 8501 --server.address 0.0.0.0
+    depends_on:
+      - prediction-api
+      - retrain-api
+    restart: unless-stopped
+    networks:
+      - urbansound-network
+
+networks:
+  urbansound-network:
+    driver: bridge
+
+volumes:
+  models-volume:
+  data-volume:

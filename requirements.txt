@@ -1,0 +1,35 @@
+# Core scientific computing
+numpy>=1.26.0
+pandas>=2.0.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Audio processing
+librosa>=0.10.0
+soundfile>=0.12.0
+audioread>=3.0.0
+
+# Machine Learning
+scikit-learn>=1.3.0
+tensorflow>=2.15.0
+
+# Deep Learning utilities
+keras>=3.0.0
+
+# API and Web
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+streamlit>=1.28.0
+python-multipart>=0.0.6
+pydantic>=2.5.0
+
+# Testing and monitoring
+locust>=2.17.0
+
+# Utilities
+tqdm>=4.66.0
+pillow>=10.0.0
+
+# Optional: Azure deployment (uncomment if deploying to Azure)
+# azure-functions
+# azure-storage-blob
