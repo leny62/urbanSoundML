@@ -84,7 +84,7 @@ UrbanSoundMl is an end-to-end Machine Learning pipeline for urban sound classifi
 
 ```bash
 # Clone repository
-git clone https://github.com/YOUR_USERNAME/urbanSoundML.git
+git clone https://github.com/leny62/urbanSoundML.git
 cd urbanSoundML
 
 # Create virtual environment
@@ -230,7 +230,6 @@ Test with different numbers of Docker containers:
 | 2         | 100   | ~45 RPS      | 135ms       | 520ms       | 0%           |
 | 3         | 200   | ~85 RPS      | 150ms       | 680ms       | 0.2%         |
 
-*Note: Update with your actual test results*
 
 ---
 
@@ -398,9 +397,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 👥 Authors
 
 **Urban Sound ML Team**
-- Project Lead: [Your Name]
 - GitHub: [@leny62](https://github.com/leny62)
-- Email: your.email@example.com
+- Email: lihirwe6@gmail.com
 
 ---
 
