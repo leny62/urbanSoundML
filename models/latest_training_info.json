@@ -1,0 +1,29 @@
+{
+    "timestamp": "2025-12-03T14:28:37.816509",
+    "training_samples": 31,
+    "validation_samples": 8,
+    "num_classes": 12,
+    "classes": [
+        "air_conditioner",
+        "car_horn",
+        "children_playing",
+        "dog_bark",
+        "drilling",
+        "engine_idling",
+        "gun_shot",
+        "jackhammer",
+        "siren",
+        "street_music",
+        "159742-8-0-5",
+        "17307-1-0-0"
+    ],
+    "epochs": 10,
+    "batch_size": 32,
+    "val_accuracy": 0.375,
+    "val_loss": 6.136470317840576,
+    "val_precision": 0.140625,
+    "val_recall": 0.375,
+    "val_f1": 0.20454545454545453,
+    "backup_path": "models/backups\\model_backup_20251203_142701.keras",
+    "use_pretrained": true
+}
