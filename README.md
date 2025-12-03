@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ## 📹 Video Demonstration
-**[▶️ Watch Demo Video on YouTube](hhttps://youtu.be/pOuBmmEuvn4)**
+**[▶️ Watch Demo Video on YouTube](https://youtu.be/pOuBmmEuvn4)**
 
 
 ---
