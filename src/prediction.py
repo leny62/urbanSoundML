@@ -74,36 +74,42 @@ class HealthResponse(BaseModel):
     total_predictions: int
 
 
-@app.on_event("startup")
-async def load_model_on_startup():
-    """Load model and preprocessor on startup"""
+def _load_resources():
+    """Helper to load model, class names, and preprocessor"""
     global model, preprocessor, class_names
     
+    # Initialize preprocessor every time to ensure fresh state
+    preprocessor = AudioPreprocessor(
+        sample_rate=22050,
+        duration=4.0,
+        n_mels=128
+    )
+    logger.info("Preprocessor initialized")
+    
+    # Load class names first
+    if os.path.exists(CLASS_NAMES_PATH):
+        import json
+        with open(CLASS_NAMES_PATH, 'r') as f:
+            class_names = json.load(f)
+        logger.info(f"Loaded {len(class_names)} class names")
+    else:
+        class_names = []
+        logger.warning(f"Class names file not found at {CLASS_NAMES_PATH}")
+    
+    # Load model
+    if os.path.exists(MODEL_PATH):
+        model = tf.keras.models.load_model(MODEL_PATH)
+        logger.info(f"Model loaded from {MODEL_PATH}")
+    else:
+        model = None
+        logger.warning(f"Model not found at {MODEL_PATH}")
+
+
+@app.on_event("startup")
+async def load_model_on_startup():
+    """Load resources when the API starts"""
     try:
-        # Initialize preprocessor
-        preprocessor = AudioPreprocessor(
-            sample_rate=22050,
-            duration=4.0,
-            n_mels=128
-        )
-        logger.info("Preprocessor initialized")
-        
-        # Load model
-        if os.path.exists(MODEL_PATH):
-            model = tf.keras.models.load_model(MODEL_PATH)
-            logger.info(f"Model loaded from {MODEL_PATH}")
-        else:
-            logger.warning(f"Model not found at {MODEL_PATH}")
-        
-        # Load class names
-        if os.path.exists(CLASS_NAMES_PATH):
-            import json
-            with open(CLASS_NAMES_PATH, 'r') as f:
-                class_names = json.load(f)
-            logger.info(f"Loaded {len(class_names)} class names")
-        else:
-            logger.warning(f"Class names file not found at {CLASS_NAMES_PATH}")
-            
+        _load_resources()
     except Exception as e:
         logger.error(f"Error during startup: {e}")
 
@@ -172,18 +178,30 @@ async def predict_audio(file: UploadFile = File(...)):
         
         # Make prediction
         predictions = model.predict(mel_spec, verbose=0)
-        predicted_idx = np.argmax(predictions[0])
+        predicted_idx = int(np.argmax(predictions[0]))
         confidence = float(predictions[0][predicted_idx])
         
-        # Create probability dictionary
+        # Ensure class name list matches model output
+        num_outputs = predictions.shape[1]
+        if len(class_names) < num_outputs:
+            logger.warning(
+                "Class name count (%d) is less than model outputs (%d). Filling placeholders.",
+                len(class_names), num_outputs
+            )
+            extended_names = class_names + [f"class_{i}" for i in range(len(class_names), num_outputs)]
+        else:
+            extended_names = class_names[:num_outputs]
+        
+        predicted_class = extended_names[predicted_idx]
+        
+        # Create probability dictionary aligned with extended names
         all_probs = {
-            class_names[i]: float(predictions[0][i])
-            for i in range(len(class_names))
+            extended_names[i]: float(predictions[0][i])
+            for i in range(num_outputs)
         }
         
         # Update metrics
         prediction_metrics["total_predictions"] += 1
-        predicted_class = class_names[predicted_idx]
         if predicted_class not in prediction_metrics["predictions_by_class"]:
             prediction_metrics["predictions_by_class"][predicted_class] = 0
         prediction_metrics["predictions_by_class"][predicted_class] += 1
@@ -219,6 +237,8 @@ async def batch_predict(files: List[UploadFile] = File(...)):
     """
     if model is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
+    if not class_names:
+        raise HTTPException(status_code=503, detail="Class names not loaded")
     
     results = []
     
@@ -245,16 +265,32 @@ async def batch_predict(files: List[UploadFile] = File(...)):
             
             # Predict
             predictions = model.predict(mel_spec, verbose=0)
-            predicted_idx = np.argmax(predictions[0])
+            predicted_idx = int(np.argmax(predictions[0]))
+            confidence = float(predictions[0][predicted_idx])
+
+            num_outputs = predictions.shape[1]
+            if len(class_names) < num_outputs:
+                logger.warning(
+                    "Class name count (%d) is less than model outputs (%d). Filling placeholders.",
+                    len(class_names), num_outputs
+                )
+                extended_names = class_names + [f"class_{i}" for i in range(len(class_names), num_outputs)]
+            else:
+                extended_names = class_names[:num_outputs]
+
+            predicted_class = extended_names[predicted_idx]
             
             results.append({
                 "filename": file.filename,
-                "predicted_class": class_names[predicted_idx],
-                "confidence": float(predictions[0][predicted_idx])
+                "predicted_class": predicted_class,
+                "confidence": confidence
             })
             
             # Update metrics
             prediction_metrics["total_predictions"] += 1
+            if predicted_class not in prediction_metrics["predictions_by_class"]:
+                prediction_metrics["predictions_by_class"][predicted_class] = 0
+            prediction_metrics["predictions_by_class"][predicted_class] += 1
             
             # Clean up
             if os.path.exists(temp_path):
@@ -268,6 +304,16 @@ async def batch_predict(files: List[UploadFile] = File(...)):
             })
     
     return JSONResponse(content={"predictions": results})
+
+
+@app.post("/reload")
+async def reload_resources():
+    """Reload the model and class names (use after retraining)"""
+    try:
+        _load_resources()
+        return {"status": "success", "message": "Resources reloaded"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Reload failed: {e}")
 
 
 @app.get("/metrics")

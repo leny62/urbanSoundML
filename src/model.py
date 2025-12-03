@@ -9,7 +9,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers, models, callbacks, optimizers
 from tensorflow.keras.applications import ResNet50, MobileNetV2
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import classification_report, confusion_matrix, precision_score, recall_score, f1_score
 import matplotlib.pyplot as plt
 import seaborn as sns
 import json
@@ -126,13 +126,11 @@ class UrbanSoundCNN:
         else:
             self.model = self.build_custom_cnn()
         
-        # Compile model
+        # Compile model (limit metrics to avoid TF LogicalAnd bug)
         self.model.compile(
             optimizer=optimizers.Adam(learning_rate=0.001),
             loss='sparse_categorical_crossentropy',
-            metrics=['accuracy', 
-                    keras.metrics.Precision(name='precision'),
-                    keras.metrics.Recall(name='recall')]
+            metrics=['accuracy']
         )
         
         return self.model
@@ -239,12 +237,11 @@ class UrbanSoundCNN:
         y_pred_probs = self.model.predict(X_test)
         y_pred = np.argmax(y_pred_probs, axis=1)
         
-        # Calculate metrics
-        test_loss, test_accuracy, test_precision, test_recall = self.model.evaluate(X_test, y_test, verbose=0)
-        
-        # F1 Score
-        from sklearn.metrics import f1_score
-        f1 = f1_score(y_test, y_pred, average='weighted')
+        # Calculate metrics (precision/recall via sklearn to avoid TF bug)
+        test_loss, test_accuracy = self.model.evaluate(X_test, y_test, verbose=0)
+        test_precision = precision_score(y_test, y_pred, average='weighted', zero_division=0)
+        test_recall = recall_score(y_test, y_pred, average='weighted', zero_division=0)
+        f1 = f1_score(y_test, y_pred, average='weighted', zero_division=0)
         
         # Classification report
         report = classification_report(y_test, y_pred, target_names=class_names, output_dict=True)
@@ -291,23 +288,35 @@ class UrbanSoundCNN:
         axes[0, 1].legend()
         axes[0, 1].grid(True)
         
-        # Precision
-        axes[1, 0].plot(self.history.history['precision'], label='Train')
-        axes[1, 0].plot(self.history.history['val_precision'], label='Validation')
-        axes[1, 0].set_title('Model Precision')
-        axes[1, 0].set_xlabel('Epoch')
-        axes[1, 0].set_ylabel('Precision')
-        axes[1, 0].legend()
-        axes[1, 0].grid(True)
+        # Precision (if available)
+        if 'precision' in self.history.history:
+            axes[1, 0].plot(self.history.history['precision'], label='Train')
+            axes[1, 0].plot(self.history.history['val_precision'], label='Validation')
+            axes[1, 0].set_title('Model Precision')
+            axes[1, 0].set_xlabel('Epoch')
+            axes[1, 0].set_ylabel('Precision')
+            axes[1, 0].legend()
+            axes[1, 0].grid(True)
+        else:
+            axes[1, 0].axis('off')
+            axes[1, 0].text(0.5, 0.5, 'Precision metrics not available',
+                            horizontalalignment='center', verticalalignment='center',
+                            fontsize=12, transform=axes[1, 0].transAxes)
         
-        # Recall
-        axes[1, 1].plot(self.history.history['recall'], label='Train')
-        axes[1, 1].plot(self.history.history['val_recall'], label='Validation')
-        axes[1, 1].set_title('Model Recall')
-        axes[1, 1].set_xlabel('Epoch')
-        axes[1, 1].set_ylabel('Recall')
-        axes[1, 1].legend()
-        axes[1, 1].grid(True)
+        # Recall (if available)
+        if 'recall' in self.history.history:
+            axes[1, 1].plot(self.history.history['recall'], label='Train')
+            axes[1, 1].plot(self.history.history['val_recall'], label='Validation')
+            axes[1, 1].set_title('Model Recall')
+            axes[1, 1].set_xlabel('Epoch')
+            axes[1, 1].set_ylabel('Recall')
+            axes[1, 1].legend()
+            axes[1, 1].grid(True)
+        else:
+            axes[1, 1].axis('off')
+            axes[1, 1].text(0.5, 0.5, 'Recall metrics not available',
+                            horizontalalignment='center', verticalalignment='center',
+                            fontsize=12, transform=axes[1, 1].transAxes)
         
         plt.tight_layout()
         

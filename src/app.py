@@ -70,7 +70,9 @@ st.markdown("""
 def check_api_health(api_url):
     """Check if API is healthy"""
     try:
-        response = requests.get(f"{api_url}/health", timeout=5)
+        # Retrain API uses /status endpoint, prediction API uses /health
+        endpoint = "/status" if "8001" in api_url else "/health"
+        response = requests.get(f"{api_url}{endpoint}", timeout=5)
         return response.status_code == 200
     except:
         return False
@@ -409,8 +411,9 @@ def show_visualizations():
             'Importance': [0.25, 0.30, 0.15, 0.12, 0.10, 0.08]
         }).sort_values('Importance', ascending=True)
         
-        fig = px.barh(feature_importance, x='Importance', y='Feature',
+        fig = px.bar(feature_importance, x='Importance', y='Feature',
                      title='Feature Importance Analysis',
+                     orientation='h',
                      color='Importance', color_continuous_scale='viridis')
         st.plotly_chart(fig, use_container_width=True)
 

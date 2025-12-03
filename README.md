@@ -7,9 +7,8 @@
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ## 📹 Video Demonstration
-**[▶️ Watch Demo Video on YouTube]()**
+**[▶️ Watch Demo Video on YouTube](https://youtu.be/kIquOMoYUQg)**
 
-**📍 Live Demo URL:** ``
 
 ---
 
@@ -84,7 +83,7 @@ UrbanSoundMl is an end-to-end Machine Learning pipeline for urban sound classifi
 
 ```bash
 # Clone repository
-git clone https://github.com/YOUR_USERNAME/urbanSoundML.git
+git clone https://github.com/leny62/urbanSoundML.git
 cd urbanSoundML
 
 # Create virtual environment
@@ -205,32 +204,43 @@ Simulate flood of requests to test system performance:
 locust -f locustfile.py --host=http://localhost:8000
 
 # Headless mode - Light Load (10 users)
-locust -f locustfile.py --host=http://localhost:8000 \
+.\.venv\Scripts\locust.exe -f locustfile.py --host http://localhost:8000 \
   --users 10 --spawn-rate 1 --run-time 5m --headless \
-  --csv=results/light_load
+  --csv results/light_load
 
 # Medium Load (50 users)
-locust -f locustfile.py --host=http://localhost:8000 \
+.\.venv\Scripts\locust.exe -f locustfile.py --host http://localhost:8000 \
   --users 50 --spawn-rate 5 --run-time 5m --headless \
-  --csv=results/medium_load
+  --csv results/medium_load
 
 # Heavy Load (200 users)
-locust -f locustfile.py --host=http://localhost:8000 \
+.\.venv\Scripts\locust.exe -f locustfile.py --host http://localhost:8000 \
   --users 200 --spawn-rate 10 --run-time 5m --headless \
-  --csv=results/heavy_load
+  --csv results/heavy_load
 ```
 
 ### 📊 Performance Results
 
-Test with different numbers of Docker containers:
+**Latest Test Results (10 Users, 5 min, Local Deployment):**
 
-| Containers | Users | Requests/sec | Avg Latency | Max Latency | Failure Rate |
-|-----------|-------|--------------|-------------|-------------|--------------|
-| 1         | 50    | ~25 RPS      | 120ms       | 450ms       | 0%           |
-| 2         | 100   | ~45 RPS      | 135ms       | 520ms       | 0%           |
-| 3         | 200   | ~85 RPS      | 150ms       | 680ms       | 0.2%         |
+| Endpoint        | Requests | Avg Latency | Med Latency | Max Latency | 95th %ile | Failure Rate |
+|-----------------|----------|-------------|-------------|-------------|-----------|--------------|
+| `/predict`      | 558      | 412ms       | 260ms       | 2614ms      | 1200ms    | 0%           |
+| `/batch-predict`| 176      | 1234ms      | 980ms       | 5273ms      | 3000ms    | 0%           |
+| `/health`       | 774      | 135ms       | 68ms        | 2065ms      | 450ms     | 0%           |
+| `/classes`      | 60       | 79ms        | 42ms        | 360ms       | 270ms     | 0%           |
+| `/metrics`      | 55       | 127ms       | 85ms        | 722ms       | 390ms     | 0%           |
+| **Total**       | **1623** | **347ms**   | **180ms**   | **5273ms**  | **1400ms**| **0%**       |
 
-*Note: Update with your actual test results*
+**Overall Throughput:** 5.42 requests/sec  
+**Test Duration:** 5 minutes  
+**Zero Failures:** System handled all requests successfully under light load
+
+**Key Insights:**
+- Single predictions complete in ~260ms (median)
+- Batch processing scales linearly with audio file count
+- Health checks respond in <100ms (median)
+- System stable under sustained load with no errors
 
 ---
 
@@ -398,9 +408,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 👥 Authors
 
 **Urban Sound ML Team**
-- Project Lead: [Your Name]
 - GitHub: [@leny62](https://github.com/leny62)
-- Email: your.email@example.com
+- Email: lihirwe6@gmail.com
 
 ---
 

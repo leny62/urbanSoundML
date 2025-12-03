@@ -12,6 +12,7 @@ import json
 import shutil
 from pathlib import Path
 from typing import List, Optional, Tuple
+from sklearn.metrics import precision_score, recall_score, f1_score
 import logging
 
 # Add src directory to path
@@ -165,6 +166,9 @@ class RetrainingPipeline:
         if os.path.exists(X_train_path) and os.path.exists(y_train_path):
             X_train = np.load(X_train_path)
             y_train = np.load(y_train_path)
+            # If data was saved with channel dimension, squeeze it to match new data
+            if X_train.ndim == 4 and X_train.shape[-1] == 1:
+                X_train = np.squeeze(X_train, axis=-1)
             logger.info(f"Loaded existing data: {X_train.shape[0]} samples")
             return X_train, y_train
         
@@ -299,10 +303,12 @@ class RetrainingPipeline:
             model_dir=self.model_dir
         )
         
-        # Evaluate on validation set
-        val_loss, val_accuracy, val_precision, val_recall = model_wrapper.model.evaluate(
-            X_val, y_val, verbose=0
-        )
+        # Evaluate on validation set (precision/recall via sklearn to avoid TF metric issues)
+        val_loss, val_accuracy = model_wrapper.model.evaluate(X_val, y_val, verbose=0)
+        y_val_pred = np.argmax(model_wrapper.model.predict(X_val, verbose=0), axis=1)
+        val_precision = precision_score(y_val, y_val_pred, average='weighted', zero_division=0)
+        val_recall = recall_score(y_val, y_val_pred, average='weighted', zero_division=0)
+        val_f1 = f1_score(y_val, y_val_pred, average='weighted', zero_division=0)
         
         # Save training info
         training_info = {
@@ -317,6 +323,7 @@ class RetrainingPipeline:
             "val_loss": float(val_loss),
             "val_precision": float(val_precision),
             "val_recall": float(val_recall),
+            "val_f1": float(val_f1),
             "backup_path": backup_path,
             "use_pretrained": use_pretrained
         }
